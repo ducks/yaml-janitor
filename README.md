@@ -81,14 +81,12 @@ Create a `.yaml-janitor.yml` file in your project root:
 # Formatting options
 indentation: 2
 line_width: 80
-sequence_indent: false
 ```
 
 ### Configuration Options
 
 - `indentation`: Number of spaces for indentation (default: 2)
-- `line_width`: Maximum line width before wrapping (default: 80)
-- `sequence_indent`: Indent sequences under their key (default: false)
+- `line_width`: Maximum line width before wrapping (default: 80, not yet implemented)
 
 ### Command Line Overrides
 
