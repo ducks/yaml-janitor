@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = "YAML linter that preserves comments using psych-pure"
   spec.description   = "A YAML linter built on psych-pure that can detect and fix common issues while preserving comments"
-  spec.homepage      = "https://github.com/discourse-org/yaml-janitor"
+  spec.homepage      = "https://github.com/ducks/yaml-janitor"
   spec.license       = "MIT"
 
   spec.required_ruby_version = ">= 3.0.0"
