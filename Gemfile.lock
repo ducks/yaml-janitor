@@ -1,0 +1,33 @@
+PATH
+  remote: .
+  specs:
+    yaml-janitor (0.1.0)
+      psych-pure (~> 0.2)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    date (3.4.1)
+    minitest (5.26.1)
+    psych (5.2.6)
+      date
+      stringio
+    psych-pure (0.2.0)
+      psych
+      strscan
+    rake (13.3.1)
+    stringio (3.1.7)
+    strscan (3.1.5)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  minitest
+  psych-pure (~> 0.2.0)
+  rake
+  yaml-janitor!
+
+BUNDLED WITH
+   2.6.6
