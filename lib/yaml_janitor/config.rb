@@ -7,7 +7,6 @@ module YamlJanitor
     DEFAULT_CONFIG = {
       indentation: 2,
       line_width: 80,
-      sequence_indent: false,
       rules: {
         multiline_certificate: { enabled: true },
         consistent_indentation: { enabled: true }
@@ -30,10 +29,6 @@ module YamlJanitor
       @config[:line_width]
     end
 
-    def sequence_indent
-      @config[:sequence_indent]
-    end
-
     def rule_enabled?(rule_name)
       rule_config = @config[:rules][rule_name.to_sym]
       rule_config && rule_config[:enabled] != false
@@ -46,8 +41,7 @@ module YamlJanitor
     def dump_options
       {
         indentation: indentation,
-        line_width: line_width,
-        sequence_indent: sequence_indent
+        line_width: line_width
       }
     end
 
