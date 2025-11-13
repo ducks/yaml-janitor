@@ -1,13 +1,13 @@
 # yaml-janitor
 
-A YAML linter built on psych-pure that preserves comments while detecting and
-fixing issues.
+A YAML linter and formatter built on psych-pure that preserves comments while
+formatting files.
 
 ## Why?
 
 Traditional YAML tools destroy comments when editing files. yaml-janitor uses
-psych-pure's comment-preserving parser to lint and fix YAML files without
-losing valuable documentation.
+psych-pure's comment-preserving parser to format YAML files without losing
+valuable documentation.
 
 ## Installation
 
@@ -25,7 +25,7 @@ gem 'yaml-janitor'
 
 ### CLI
 
-Check a single file:
+Check a single file (reports formatting issues):
 ```bash
 yaml-janitor config.yml
 ```
@@ -35,14 +35,14 @@ Check all YAML files in a directory:
 yaml-janitor containers/
 ```
 
-Auto-fix issues:
+Format files in-place:
 ```bash
 yaml-janitor --fix config.yml
 ```
 
-Run specific rules:
+Format with custom indentation:
 ```bash
-yaml-janitor --rules multiline_certificate config.yml
+yaml-janitor --fix --indentation 4 config.yml
 ```
 
 ### Ruby API
@@ -50,21 +50,27 @@ yaml-janitor --rules multiline_certificate config.yml
 ```ruby
 require 'yaml_janitor'
 
-# Lint a file
+# Check a file for formatting issues
 result = YamlJanitor.lint_file("config.yml")
 result[:violations].each do |violation|
-  puts violation
+  puts "#{violation.file}: #{violation.message}"
 end
 
-# Lint and fix
-result = YamlJanitor.lint_file("config.yml", fix: true)
+# Format a file in-place
+result = YamlJanitor.format_file("config.yml")
 if result[:fixed]
-  puts "Fixed! New content:\n#{result[:output]}"
+  puts "Formatted!"
 end
 
-# Lint a string
+# Format a string
 yaml_string = File.read("config.yml")
-result = YamlJanitor.lint(yaml_string)
+result = YamlJanitor.format(yaml_string)
+puts result[:output]
+
+# Use custom config
+config = YamlJanitor::Config.new(overrides: { indentation: 4 })
+linter = YamlJanitor::Linter.new(config: config)
+result = linter.lint_file("config.yml", fix: true)
 ```
 
 ## Configuration
@@ -72,29 +78,17 @@ result = YamlJanitor.lint(yaml_string)
 Create a `.yaml-janitor.yml` file in your project root:
 
 ```yaml
-# Formatting options (applied during --fix)
+# Formatting options
 indentation: 2
 line_width: 80
 sequence_indent: false
-
-# Rule configuration
-rules:
-  multiline_certificate:
-    enabled: true
-  consistent_indentation:
-    enabled: true
 ```
 
 ### Configuration Options
 
-**Formatting**:
 - `indentation`: Number of spaces for indentation (default: 2)
 - `line_width`: Maximum line width before wrapping (default: 80)
 - `sequence_indent`: Indent sequences under their key (default: false)
-
-**Rules**:
-- `multiline_certificate`: Detects multi-line certificates in double-quoted strings
-- `consistent_indentation`: Detects and fixes inconsistent indentation
 
 ### Command Line Overrides
 
@@ -106,47 +100,43 @@ yaml-janitor --indentation 4 --line-width 100 config.yml
 yaml-janitor --config production.yml containers/
 ```
 
-## Rules
+## How It Works
 
-### multiline_certificate
+yaml-janitor uses a two-phase approach:
 
-Detects multi-line certificates embedded in double-quoted strings. This pattern
-triggers a psych-pure parser bug.
+1. **Parse**: Load YAML with psych-pure, preserving comment metadata
+2. **Format**: Emit YAML using custom formatter with full control over style
 
-```yaml
-# BAD (will trigger violation)
-DISCOURSE_SAML_CERT: "-----BEGIN CERTIFICATE-----
-MIIDGDCCAgCgAwIBAgIVAMP/9hm9Vl3/23QoXrL8hQ31DLwRMA0GCSqGSIb3DQEB
------END CERTIFICATE-----"
+When you run `yaml-janitor --fix`, it:
+- Loads your YAML file with comments preserved
+- Formats it according to configuration (indentation, line width, etc.)
+- Verifies semantics are unchanged (paranoid mode)
+- Writes the formatted output back to the file
 
-# GOOD (use block literal style)
-DISCOURSE_SAML_CERT: |
-  -----BEGIN CERTIFICATE-----
-  MIIDGDCCAgCgAwIBAgIVAMP/9hm9Vl3/23QoXrL8hQ31DLwRMA0GCSqGSIb3DQEB
-  -----END CERTIFICATE-----
-```
+### Formatting Rules
 
-**Auto-fix**: Not yet implemented (requires psych-pure enhancements)
+The formatter enforces:
+- **Consistent indentation** (default: 2 spaces)
+- **Block style for arrays and mappings** (never flow style like `[a, b, c]`)
+- **Normalized string quoting** (only quotes when necessary)
+- **Proper line breaks** between top-level keys
 
-### consistent_indentation
+### Comment Preservation
 
-Detects inconsistent indentation (mixing 2-space, 4-space, etc.) in YAML files.
+Comments are preserved in most locations:
+- Leading comments (before keys)
+- Trailing comments (after values)
+- Mid-document comments (between keys)
 
-```yaml
-# BAD (inconsistent: 4 and 8 spaces)
-database:
-    host: "localhost"
-config:
-        timeout: 30
+Known limitation: Inline comments on mapping keys (e.g., `servers: # comment`)
+may be repositioned as leading comments on the next key due to psych-pure's
+comment tracking.
 
-# GOOD (consistent: 2 spaces)
-database:
-  host: "localhost"
-config:
-  timeout: 30
-```
+### Safety
 
-**Auto-fix**: Yes, normalizes to configured indentation (default: 2 spaces)
+All formatting changes are verified with paranoid mode: the original YAML and
+formatted YAML are both parsed and compared for semantic equality. If they
+differ, the tool errors out instead of writing the file.
 
 ## Development
 
@@ -164,12 +154,12 @@ bundle exec rake test
 ### Test Coverage
 
 Integration tests verify:
-- Comment preservation during fixes
+- Comment preservation during formatting
 - Indentation normalization
 - Paranoid mode (semantic verification)
-- Config loading and rule enable/disable
-- Multi-line certificate detection
-- Clean files pass without violations
+- Config loading and overrides
+- Parse error detection
+- Idempotent formatting (clean files pass without violations)
 
 ## Background
 
