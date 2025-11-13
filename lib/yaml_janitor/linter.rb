@@ -2,11 +2,8 @@
 
 module YamlJanitor
   class Linter
-    attr_reader :rules
-
-    def initialize(rules: :all, config: nil, config_path: nil)
+    def initialize(config: nil, config_path: nil)
       @config = config || Config.new(config_path: config_path)
-      @rules = load_rules(rules)
     end
 
     # Lint a file, optionally fixing issues
@@ -28,22 +25,24 @@ module YamlJanitor
       # Load with comments
       loaded = Psych::Pure.load(yaml_content, comments: true)
 
-      # Check for violations
-      @rules.each do |rule|
-        violations += rule.check(loaded, file: file)
+      # Format using our custom emitter
+      formatted = Emitter.new(loaded, @config).emit
+
+      # Check if formatting would change the file
+      if yaml_content != formatted
+        violations << Violation.new(
+          rule: :formatting,
+          message: "File needs formatting (indentation, style, or whitespace issues)",
+          file: file
+        )
       end
 
       # Apply fixes if requested
       output = yaml_content
       fixed = false
 
-      if fix && violations.any?
-        @rules.each do |rule|
-          rule.fix!(loaded)
-        end
-
-        # Dump back to YAML with configured options
-        output = Psych::Pure.dump(loaded, **@config.dump_options)
+      if fix
+        output = formatted
         fixed = true
 
         # Paranoid mode: verify semantics match
@@ -69,32 +68,6 @@ module YamlJanitor
     end
 
     private
-
-    def load_rules(rule_specs)
-      available_rules = {
-        multiline_certificate: Rules::MultilineCertificate,
-        consistent_indentation: Rules::ConsistentIndentation
-      }
-
-      if rule_specs == :all
-        # Load all enabled rules from config
-        rule_names = available_rules.keys.select do |name|
-          @config.rule_enabled?(name)
-        end
-      elsif rule_specs.is_a?(Array)
-        rule_names = rule_specs
-      else
-        raise Error, "Invalid rules specification: #{rule_specs.inspect}"
-      end
-
-      rule_names.map do |name|
-        rule_class = available_rules[name.to_sym]
-        raise Error, "Unknown rule: #{name}" unless rule_class
-        next unless @config.rule_enabled?(name)
-
-        rule_class.new(@config.rule_config(name))
-      end.compact
-    end
 
     def verify_semantics!(original, fixed)
       original_data = YAML.load(original)

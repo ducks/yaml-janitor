@@ -23,17 +23,13 @@ class IntegrationTest < Minitest::Test
       file.write(yaml_with_comments)
       file.flush
 
-      # Run the linter with --fix
+      # Run the formatter
       config = YamlJanitor::Config.new(overrides: { indentation: 2 })
       linter = YamlJanitor::Linter.new(config: config)
       result = linter.lint_file(file.path, fix: true)
 
-      # Should detect inconsistent indentation
-      assert result[:violations].any? { |v| v.rule == "consistent_indentation" },
-             "Should detect inconsistent indentation"
-
-      # Should fix it
-      assert result[:fixed], "Should have fixed the file"
+      # Should format the file
+      assert result[:fixed], "Should have formatted the file"
 
       # Read the fixed content
       fixed_content = File.read(file.path)
@@ -73,19 +69,12 @@ class IntegrationTest < Minitest::Test
       file.write(yaml_inconsistent)
       file.flush
 
-      # Detect inconsistent indentation
-      linter = YamlJanitor::Linter.new
-      result = linter.lint_file(file.path)
-
-      assert result[:violations].any? { |v| v.rule == "consistent_indentation" },
-             "Should detect inconsistent indentation (4, 8 spaces)"
-
-      # Fix with 2-space indentation
+      # Format with 2-space indentation
       config = YamlJanitor::Config.new(overrides: { indentation: 2 })
-      linter_with_config = YamlJanitor::Linter.new(config: config)
-      fix_result = linter_with_config.lint_file(file.path, fix: true)
+      linter = YamlJanitor::Linter.new(config: config)
+      result = linter.lint_file(file.path, fix: true)
 
-      assert fix_result[:fixed], "Should fix the indentation"
+      assert result[:fixed], "Should format the file"
 
       fixed_content = File.read(file.path)
 
@@ -128,23 +117,17 @@ class IntegrationTest < Minitest::Test
       file.write(yaml_content)
       file.flush
 
-      # With consistent_indentation enabled (default)
-      config_enabled = YamlJanitor::Config.new
-      linter_enabled = YamlJanitor::Linter.new(config: config_enabled)
-      result_enabled = linter_enabled.lint_file(file.path)
+      # Format with default config (2-space indentation)
+      config = YamlJanitor::Config.new
+      linter = YamlJanitor::Linter.new(config: config)
+      result = linter.lint_file(file.path, fix: true)
 
-      assert result_enabled[:violations].any? { |v| v.rule == "consistent_indentation" },
-             "Should detect inconsistent indentation when enabled"
+      assert result[:fixed], "Should format the file"
 
-      # With consistent_indentation disabled
-      config_disabled = YamlJanitor::Config.new(overrides: {
-        rules: { consistent_indentation: { enabled: false } }
-      })
-      linter_disabled = YamlJanitor::Linter.new(config: config_disabled)
-      result_disabled = linter_disabled.lint_file(file.path)
-
-      refute result_disabled[:violations].any? { |v| v.rule == "consistent_indentation" },
-             "Should not detect inconsistent indentation when disabled"
+      # Verify formatted content has consistent indentation
+      fixed_content = File.read(file.path)
+      assert_match(/^database:$/, fixed_content)
+      assert_match(/^  host:/, fixed_content)
     end
   end
 
@@ -167,9 +150,8 @@ class IntegrationTest < Minitest::Test
 
   def test_clean_file_passes
     clean_yaml = <<~YAML
-      ---
       # This is a clean file
-      name: "Test"
+      name: Test
       config:
         timeout: 30
         retries: 3
