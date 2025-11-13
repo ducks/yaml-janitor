@@ -10,7 +10,6 @@ module YamlJanitor
       sequence_indent: false,
       rules: {
         multiline_certificate: { enabled: true },
-        trailing_whitespace: { enabled: true },
         consistent_indentation: { enabled: true }
       }
     }.freeze

@@ -73,7 +73,6 @@ module YamlJanitor
     def load_rules(rule_specs)
       available_rules = {
         multiline_certificate: Rules::MultilineCertificate,
-        trailing_whitespace: Rules::TrailingWhitespace,
         consistent_indentation: Rules::ConsistentIndentation
       }
 

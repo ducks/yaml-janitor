@@ -81,7 +81,7 @@ sequence_indent: false
 rules:
   multiline_certificate:
     enabled: true
-  trailing_whitespace:
+  consistent_indentation:
     enabled: true
 ```
 
@@ -94,7 +94,6 @@ rules:
 
 **Rules**:
 - `multiline_certificate`: Detects multi-line certificates in double-quoted strings
-- `trailing_whitespace`: Detects and removes trailing whitespace from string values
 - `consistent_indentation`: Detects and fixes inconsistent indentation
 
 ### Command Line Overrides
@@ -128,22 +127,6 @@ DISCOURSE_SAML_CERT: |
 ```
 
 **Auto-fix**: Not yet implemented (requires psych-pure enhancements)
-
-### trailing_whitespace
-
-Detects trailing whitespace in string values.
-
-```yaml
-# BAD (will trigger violation)
-name: "John Doe  "
-description: "Some text   "
-
-# GOOD
-name: "John Doe"
-description: "Some text"
-```
-
-**Auto-fix**: Yes, strips trailing whitespace when using `--fix`
 
 ### consistent_indentation
 

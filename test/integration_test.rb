@@ -118,31 +118,33 @@ class IntegrationTest < Minitest::Test
   def test_config_loading_affects_behavior
     yaml_content = <<~YAML
       ---
-      name: "Test  "
-      description: "Text  "
+      database:
+          host: "localhost"
+      config:
+              timeout: 30
     YAML
 
     Tempfile.create(["test", ".yml"]) do |file|
       file.write(yaml_content)
       file.flush
 
-      # With trailing_whitespace enabled (default)
+      # With consistent_indentation enabled (default)
       config_enabled = YamlJanitor::Config.new
       linter_enabled = YamlJanitor::Linter.new(config: config_enabled)
       result_enabled = linter_enabled.lint_file(file.path)
 
-      assert result_enabled[:violations].any? { |v| v.rule == "trailing_whitespace" },
-             "Should detect trailing whitespace when enabled"
+      assert result_enabled[:violations].any? { |v| v.rule == "consistent_indentation" },
+             "Should detect inconsistent indentation when enabled"
 
-      # With trailing_whitespace disabled
+      # With consistent_indentation disabled
       config_disabled = YamlJanitor::Config.new(overrides: {
-        rules: { trailing_whitespace: { enabled: false } }
+        rules: { consistent_indentation: { enabled: false } }
       })
       linter_disabled = YamlJanitor::Linter.new(config: config_disabled)
       result_disabled = linter_disabled.lint_file(file.path)
 
-      refute result_disabled[:violations].any? { |v| v.rule == "trailing_whitespace" },
-             "Should not detect trailing whitespace when disabled"
+      refute result_disabled[:violations].any? { |v| v.rule == "consistent_indentation" },
+             "Should not detect inconsistent indentation when disabled"
     end
   end
 

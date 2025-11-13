@@ -9,7 +9,6 @@ require_relative "yaml_janitor/linter"
 require_relative "yaml_janitor/rule"
 require_relative "yaml_janitor/violation"
 require_relative "yaml_janitor/rules/multiline_certificate"
-require_relative "yaml_janitor/rules/trailing_whitespace"
 require_relative "yaml_janitor/rules/consistent_indentation"
 
 module YamlJanitor
