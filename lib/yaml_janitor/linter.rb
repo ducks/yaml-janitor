@@ -4,7 +4,8 @@ module YamlJanitor
   class Linter
     attr_reader :rules
 
-    def initialize(rules: :all)
+    def initialize(rules: :all, config: nil, config_path: nil)
+      @config = config || Config.new(config_path: config_path)
       @rules = load_rules(rules)
     end
 
@@ -41,8 +42,8 @@ module YamlJanitor
           rule.fix!(loaded)
         end
 
-        # Dump back to YAML
-        output = Psych::Pure.dump(loaded)
+        # Dump back to YAML with configured options
+        output = Psych::Pure.dump(loaded, **@config.dump_options)
         fixed = true
 
         # Paranoid mode: verify semantics match
@@ -70,24 +71,29 @@ module YamlJanitor
     private
 
     def load_rules(rule_specs)
+      available_rules = {
+        multiline_certificate: Rules::MultilineCertificate,
+        trailing_whitespace: Rules::TrailingWhitespace
+      }
+
       if rule_specs == :all
-        # Load all available rules
-        [
-          Rules::MultilineCertificate.new
-        ]
-      elsif rule_specs.is_a?(Array)
-        # Load specific rules by name
-        rule_specs.map do |name|
-          case name
-          when :multiline_certificate
-            Rules::MultilineCertificate.new
-          else
-            raise Error, "Unknown rule: #{name}"
-          end
+        # Load all enabled rules from config
+        rule_names = available_rules.keys.select do |name|
+          @config.rule_enabled?(name)
         end
+      elsif rule_specs.is_a?(Array)
+        rule_names = rule_specs
       else
         raise Error, "Invalid rules specification: #{rule_specs.inspect}"
       end
+
+      rule_names.map do |name|
+        rule_class = available_rules[name.to_sym]
+        raise Error, "Unknown rule: #{name}" unless rule_class
+        next unless @config.rule_enabled?(name)
+
+        rule_class.new(@config.rule_config(name))
+      end.compact
     end
 
     def verify_semantics!(original, fixed)
