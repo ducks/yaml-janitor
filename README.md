@@ -95,6 +95,7 @@ rules:
 **Rules**:
 - `multiline_certificate`: Detects multi-line certificates in double-quoted strings
 - `trailing_whitespace`: Detects and removes trailing whitespace from string values
+- `consistent_indentation`: Detects and fixes inconsistent indentation
 
 ### Command Line Overrides
 
@@ -144,12 +145,48 @@ description: "Some text"
 
 **Auto-fix**: Yes, strips trailing whitespace when using `--fix`
 
+### consistent_indentation
+
+Detects inconsistent indentation (mixing 2-space, 4-space, etc.) in YAML files.
+
+```yaml
+# BAD (inconsistent: 4 and 8 spaces)
+database:
+    host: "localhost"
+config:
+        timeout: 30
+
+# GOOD (consistent: 2 spaces)
+database:
+  host: "localhost"
+config:
+  timeout: 30
+```
+
+**Auto-fix**: Yes, normalizes to configured indentation (default: 2 spaces)
+
 ## Development
 
+### Running Tests
+
 ```bash
+# Run integration tests
+ruby -I lib test/integration_test.rb
+
+# Or with rake (if configured)
 bundle install
 bundle exec rake test
 ```
+
+### Test Coverage
+
+Integration tests verify:
+- Comment preservation during fixes
+- Indentation normalization
+- Paranoid mode (semantic verification)
+- Config loading and rule enable/disable
+- Multi-line certificate detection
+- Clean files pass without violations
 
 ## Background
 
