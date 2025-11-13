@@ -5,11 +5,9 @@ require "yaml"
 
 require_relative "yaml_janitor/version"
 require_relative "yaml_janitor/config"
+require_relative "yaml_janitor/emitter"
 require_relative "yaml_janitor/linter"
-require_relative "yaml_janitor/rule"
 require_relative "yaml_janitor/violation"
-require_relative "yaml_janitor/rules/multiline_certificate"
-require_relative "yaml_janitor/rules/consistent_indentation"
 
 module YamlJanitor
   class Error < StandardError; end
@@ -17,16 +15,16 @@ module YamlJanitor
   class SemanticMismatchError < Error; end
 
   class << self
-    # Convenience method to lint a file
-    def lint_file(path, rules: :all, fix: false)
-      linter = Linter.new(rules: rules)
-      linter.lint_file(path, fix: fix)
+    # Convenience method to format a file
+    def format_file(path, config: nil)
+      linter = Linter.new(config: config)
+      linter.lint_file(path, fix: true)
     end
 
-    # Convenience method to lint a string
-    def lint(yaml_string, rules: :all, fix: false)
-      linter = Linter.new(rules: rules)
-      linter.lint(yaml_string, fix: fix)
+    # Convenience method to format a string
+    def format(yaml_string, config: nil)
+      linter = Linter.new(config: config)
+      linter.lint(yaml_string, fix: true)
     end
   end
 end

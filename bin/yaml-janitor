@@ -7,27 +7,29 @@ def print_usage
   puts <<~USAGE
     Usage: yaml-janitor [options] <file_or_directory>
 
+    yaml-janitor is a YAML linter and formatter that preserves comments.
+
     Options:
-      --fix               Auto-fix issues where possible
-      --rules RULES       Comma-separated list of rules (default: all)
+      --fix               Format files in-place (without this, just check)
       --config PATH       Path to config file (default: .yaml-janitor.yml)
       --indentation N     Number of spaces for indentation (default: 2)
       --line-width N      Maximum line width (default: 80)
       --help              Show this help message
 
     Examples:
+      # Check files (report issues)
       yaml-janitor config.yml
+      yaml-janitor containers/
+
+      # Format files in-place
       yaml-janitor --fix config.yml
-      yaml-janitor --rules multiline_certificate containers/
-      yaml-janitor --config my-config.yml --fix config.yml
-      yaml-janitor --indentation 4 --line-width 100 config.yml
+      yaml-janitor --fix --indentation 4 containers/
   USAGE
   exit 0
 end
 
 # Parse args
 fix = false
-rules = :all
 config_path = nil
 config_overrides = {}
 paths = []
@@ -37,9 +39,6 @@ while i < ARGV.length
   case ARGV[i]
   when "--fix"
     fix = true
-  when "--rules"
-    i += 1
-    rules = ARGV[i].split(",").map(&:to_sym)
   when "--config"
     i += 1
     config_path = ARGV[i]
@@ -69,10 +68,11 @@ end
 
 # Process files
 config = YamlJanitor::Config.new(config_path: config_path, overrides: config_overrides)
-linter = YamlJanitor::Linter.new(rules: rules, config: config)
+linter = YamlJanitor::Linter.new(config: config)
 total_files = 0
-total_violations = 0
 files_with_violations = []
+formatted_files = []
+failed_files = []
 
 paths.each do |path|
   if File.directory?(path)
@@ -82,18 +82,19 @@ paths.each do |path|
       total_files += 1
       result = linter.lint_file(file, fix: fix)
 
-      if result[:violations].any?
+      if result[:error]
+        failed_files << { file: file, error: result[:error] }
+        puts "✗ #{file}: #{result[:error].message}"
+      elsif result[:violations].any?
         files_with_violations << file
-        total_violations += result[:violations].length
-
-        puts "\n#{file}:"
-        result[:violations].each do |violation|
-          puts "  #{violation}"
+        if fix
+          formatted_files << file
+          puts "✓ #{file} (formatted)"
+        else
+          puts "✗ #{file}: needs formatting"
         end
-
-        if fix && result[:fixed]
-          puts "  ✓ Fixed"
-        end
+      elsif !fix
+        puts "✓ #{file}"
       end
     end
   elsif File.file?(path)
@@ -101,18 +102,19 @@ paths.each do |path|
     total_files += 1
     result = linter.lint_file(path, fix: fix)
 
-    if result[:violations].any?
+    if result[:error]
+      failed_files << { file: path, error: result[:error] }
+      puts "✗ #{path}: #{result[:error].message}"
+    elsif result[:violations].any?
       files_with_violations << path
-      total_violations += result[:violations].length
-
-      puts "\n#{path}:"
-      result[:violations].each do |violation|
-        puts "  #{violation}"
+      if fix
+        formatted_files << path
+        puts "✓ #{path} (formatted)"
+      else
+        puts "✗ #{path}: needs formatting"
       end
-
-      if fix && result[:fixed]
-        puts "  ✓ Fixed"
-      end
+    elsif !fix
+      puts "✓ #{path}"
     end
   else
     puts "Warning: #{path} not found"
@@ -121,10 +123,21 @@ end
 
 # Summary
 puts "\n" + "="*60
-puts "Checked #{total_files} files"
-puts "Found #{total_violations} violations in #{files_with_violations.length} files"
+if fix
+  puts "Formatted #{formatted_files.length}/#{total_files} files"
+else
+  puts "Checked #{total_files} files"
+  puts "#{files_with_violations.length} files need formatting"
+end
 
-if total_violations > 0
+if failed_files.any?
+  puts "\nFailed files:"
+  failed_files.each do |failure|
+    puts "  #{failure[:file]}: #{failure[:error].message}"
+  end
+  exit 1
+elsif files_with_violations.any? && !fix
+  puts "\nRun with --fix to format these files"
   exit 1
 else
   puts "✓ All files clean!"
