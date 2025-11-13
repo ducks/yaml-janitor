@@ -2,6 +2,9 @@
 
 module YamlJanitor
   class Rule
+    def initialize(config = {})
+      @config = config
+    end
     # Check for violations in the loaded YAML structure
     # Returns an array of Violation objects
     def check(loaded, file: nil)
@@ -47,16 +50,24 @@ module YamlJanitor
     def walk(node, path = [], &block)
       yield node, path
 
-      case node
-      when Hash
+      # Handle both regular and LoadedHash/LoadedArray from psych-pure
+      if hash_like?(node)
         node.each do |key, value|
           walk(value, path + [key], &block)
         end
-      when Array
+      elsif array_like?(node)
         node.each_with_index do |value, index|
           walk(value, path + [index], &block)
         end
       end
+    end
+
+    def hash_like?(node)
+      node.is_a?(Hash) || node.class.name == 'Psych::Pure::LoadedHash'
+    end
+
+    def array_like?(node)
+      node.is_a?(Array) || node.class.name == 'Psych::Pure::LoadedArray'
     end
   end
 end

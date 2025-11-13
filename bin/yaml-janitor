@@ -8,14 +8,19 @@ def print_usage
     Usage: yaml-janitor [options] <file_or_directory>
 
     Options:
-      --fix           Auto-fix issues where possible
-      --rules RULES   Comma-separated list of rules (default: all)
-      --help          Show this help message
+      --fix               Auto-fix issues where possible
+      --rules RULES       Comma-separated list of rules (default: all)
+      --config PATH       Path to config file (default: .yaml-janitor.yml)
+      --indentation N     Number of spaces for indentation (default: 2)
+      --line-width N      Maximum line width (default: 80)
+      --help              Show this help message
 
     Examples:
       yaml-janitor config.yml
       yaml-janitor --fix config.yml
       yaml-janitor --rules multiline_certificate containers/
+      yaml-janitor --config my-config.yml --fix config.yml
+      yaml-janitor --indentation 4 --line-width 100 config.yml
   USAGE
   exit 0
 end
@@ -23,6 +28,8 @@ end
 # Parse args
 fix = false
 rules = :all
+config_path = nil
+config_overrides = {}
 paths = []
 
 i = 0
@@ -33,6 +40,15 @@ while i < ARGV.length
   when "--rules"
     i += 1
     rules = ARGV[i].split(",").map(&:to_sym)
+  when "--config"
+    i += 1
+    config_path = ARGV[i]
+  when "--indentation"
+    i += 1
+    config_overrides[:indentation] = ARGV[i].to_i
+  when "--line-width"
+    i += 1
+    config_overrides[:line_width] = ARGV[i].to_i
   when "--help", "-h"
     print_usage
   else
@@ -46,8 +62,14 @@ if paths.empty?
   print_usage
 end
 
+# Look for default config if not specified
+if !config_path && File.exist?(".yaml-janitor.yml")
+  config_path = ".yaml-janitor.yml"
+end
+
 # Process files
-linter = YamlJanitor::Linter.new(rules: rules)
+config = YamlJanitor::Config.new(config_path: config_path, overrides: config_overrides)
+linter = YamlJanitor::Linter.new(rules: rules, config: config)
 total_files = 0
 total_violations = 0
 files_with_violations = []

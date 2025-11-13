@@ -67,6 +67,45 @@ yaml_string = File.read("config.yml")
 result = YamlJanitor.lint(yaml_string)
 ```
 
+## Configuration
+
+Create a `.yaml-janitor.yml` file in your project root:
+
+```yaml
+# Formatting options (applied during --fix)
+indentation: 2
+line_width: 80
+sequence_indent: false
+
+# Rule configuration
+rules:
+  multiline_certificate:
+    enabled: true
+  trailing_whitespace:
+    enabled: true
+```
+
+### Configuration Options
+
+**Formatting**:
+- `indentation`: Number of spaces for indentation (default: 2)
+- `line_width`: Maximum line width before wrapping (default: 80)
+- `sequence_indent`: Indent sequences under their key (default: false)
+
+**Rules**:
+- `multiline_certificate`: Detects multi-line certificates in double-quoted strings
+- `trailing_whitespace`: Detects and removes trailing whitespace from string values
+
+### Command Line Overrides
+
+```bash
+# Override config file settings
+yaml-janitor --indentation 4 --line-width 100 config.yml
+
+# Use a specific config file
+yaml-janitor --config production.yml containers/
+```
+
 ## Rules
 
 ### multiline_certificate
@@ -87,8 +126,23 @@ DISCOURSE_SAML_CERT: |
   -----END CERTIFICATE-----
 ```
 
-Note: Auto-fix for this rule is not yet implemented due to psych-pure
-limitations.
+**Auto-fix**: Not yet implemented (requires psych-pure enhancements)
+
+### trailing_whitespace
+
+Detects trailing whitespace in string values.
+
+```yaml
+# BAD (will trigger violation)
+name: "John Doe  "
+description: "Some text   "
+
+# GOOD
+name: "John Doe"
+description: "Some text"
+```
+
+**Auto-fix**: Yes, strips trailing whitespace when using `--fix`
 
 ## Development
 

@@ -4,10 +4,12 @@ require "psych/pure"
 require "yaml"
 
 require_relative "yaml_janitor/version"
+require_relative "yaml_janitor/config"
 require_relative "yaml_janitor/linter"
 require_relative "yaml_janitor/rule"
 require_relative "yaml_janitor/violation"
 require_relative "yaml_janitor/rules/multiline_certificate"
+require_relative "yaml_janitor/rules/trailing_whitespace"
 
 module YamlJanitor
   class Error < StandardError; end
