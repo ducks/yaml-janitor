@@ -4,8 +4,8 @@ source "https://rubygems.org"
 
 gemspec
 
-# Use local psych-pure with our fix
-gem "psych-pure", path: "../../dev/psych-pure"
+# Use published psych-pure gem
+gem "psych-pure", "~> 0.2.0"
 
 group :development do
   gem "rake"
