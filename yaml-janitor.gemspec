@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
+require_relative "lib/yaml_janitor/version"
+
 Gem::Specification.new do |spec|
   spec.name          = "yaml-janitor"
-  spec.version       = "0.1.0"
+  spec.version       = YamlJanitor::VERSION
   spec.authors       = ["ducks"]
   spec.email         = ["ducks@discourse.org"]
 
