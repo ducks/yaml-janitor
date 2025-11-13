@@ -17,7 +17,7 @@ module YamlJanitor
     attr_reader :config
 
     def initialize(config_path: nil, overrides: {})
-      @config = DEFAULT_CONFIG.dup
+      @config = deep_dup(DEFAULT_CONFIG)
       load_config_file(config_path) if config_path
       merge_overrides(overrides)
     end
@@ -64,6 +64,12 @@ module YamlJanitor
 
     def merge_overrides(overrides)
       deep_merge!(@config, overrides)
+    end
+
+    def deep_dup(hash)
+      hash.each_with_object({}) do |(key, value), result|
+        result[key] = value.is_a?(Hash) ? deep_dup(value) : value
+      end
     end
 
     def deep_merge!(hash, other_hash)
