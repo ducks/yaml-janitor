@@ -162,4 +162,42 @@ class IntegrationTest < Minitest::Test
 
     assert result[:violations].empty?, "Clean file should have no violations"
   end
+
+  def test_compact_array_format
+    # Test that arrays of hashes use compact format (dash on same line as first key)
+    yaml_with_arrays = <<~YAML
+      ---
+      build_on_push:
+      - branch: blz-qa
+        url: git@github.com:discourse/example1
+        name: plugin1
+      - branch: blz-qa
+        url: git@github.com:discourse/example2
+        name: plugin2
+    YAML
+
+    Tempfile.create(["test", ".yml"]) do |file|
+      file.write(yaml_with_arrays)
+      file.flush
+
+      config = YamlJanitor::Config.new(overrides: { indentation: 2 })
+      linter = YamlJanitor::Linter.new(config: config)
+      result = linter.lint_file(file.path, fix: true)
+
+      fixed_content = File.read(file.path)
+
+      # Should use compact format: dash on same line as first key
+      assert_match(/^  - branch:/, fixed_content, "First key should be on same line as dash")
+      assert_match(/^    url:/, fixed_content, "Subsequent keys should be indented")
+      assert_match(/^    name:/, fixed_content, "All non-first keys should be indented")
+
+      # Should NOT have dash on its own line (explicit format)
+      refute_match(/^  -\s*$/, fixed_content, "Should not have dash on its own line")
+
+      # Verify semantics are preserved
+      original_data = YAML.load(yaml_with_arrays)
+      fixed_data = YAML.load(fixed_content)
+      assert_equal original_data, fixed_data, "Semantics should be preserved"
+    end
+  end
 end

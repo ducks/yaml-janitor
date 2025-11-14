@@ -110,9 +110,8 @@ module YamlJanitor
 
         case item
         when Hash, Psych::Pure::LoadedHash
-          # Complex item - put on next lines
-          @output << "#{' ' * indent}-"
-          emit_node(item, indent + indentation)
+          # Complex item - use compact style (dash on same line as first key)
+          emit_compact_hash_item(item, indent)
         when Array
           # Nested array
           @output << "#{' ' * indent}-"
@@ -125,6 +124,67 @@ module YamlJanitor
 
         # Emit any trailing comments
         emit_comments(get_comments(item, :trailing), indent)
+      end
+    end
+
+    def emit_compact_hash_item(hash, indent)
+      # Emit hash as array item in compact style:
+      # - key1: value1
+      #   key2: value2
+
+      # Use psych_keys if available (LoadedHash), otherwise fall back to regular iteration
+      entries = if hash.respond_to?(:psych_keys)
+        hash.psych_keys.map { |pk| [pk.key_node, pk.value_node] }
+      else
+        hash.to_a
+      end
+
+      entries.each_with_index do |(key, value), index|
+        # Emit any leading comments
+        emit_comments(get_comments(key, :leading), indent + (index > 0 ? indentation : 0))
+
+        # Get the actual key and value (unwrap LoadedObject)
+        key_str = scalar_to_string(key.is_a?(Psych::Pure::LoadedObject) ? key.__getobj__ : key)
+        actual_value = value.is_a?(Psych::Pure::LoadedObject) ? value.__getobj__ : value
+
+        # First item gets the dash, rest are indented
+        prefix = index == 0 ? "#{' ' * indent}- " : "#{' ' * (indent + indentation)}"
+
+        case actual_value
+        when Hash, Psych::Pure::LoadedHash, Array
+          # Complex value - put on next line
+          line = "#{prefix}#{key_str}:"
+
+          # Check for inline comment on the value
+          if (trailing = get_comments(value, :trailing))
+            inline = trailing.find { |c| c.inline? }
+            if inline
+              line += "  #{inline.value}"
+              trailing = trailing.reject { |c| c.inline? }
+            end
+          end
+
+          @output << line
+          emit_node(value, indent + indentation * 2)
+
+          # Emit any non-inline trailing comments
+          emit_comments(trailing, indent + indentation) if trailing&.any?
+        else
+          # Simple value - same line
+          value_str = scalar_to_string(actual_value)
+          line = "#{prefix}#{key_str}: #{value_str}"
+
+          # Check for inline comment on the value
+          if (trailing = get_comments(value, :trailing))
+            inline = trailing.find { |c| c.inline? }
+            line += "  #{inline.value}" if inline
+          end
+
+          @output << line
+        end
+
+        # Emit any trailing comments on the key itself
+        emit_comments(get_comments(key, :trailing), indent + (index > 0 ? indentation : 0))
       end
     end
 
