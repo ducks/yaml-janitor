@@ -4,6 +4,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     ruby_3_3
     bundler
+    libyaml
   ];
 
   shellHook = ''
