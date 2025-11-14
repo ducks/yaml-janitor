@@ -12,7 +12,7 @@ end
 task default: :test
 
 desc "Bump version to today's date, update lockfile, commit, and merge to main"
-task :release do
+task :bump do
   require_relative "lib/yaml_janitor/version"
 
   # Generate today's version
