@@ -52,7 +52,9 @@ module YamlJanitor
       {
         violations: violations,
         fixed: fixed,
-        output: output
+        output: output,
+        original: yaml_content,
+        formatted: formatted
       }
     rescue => e
       {
@@ -65,6 +67,38 @@ module YamlJanitor
         output: yaml_content,
         error: e
       }
+    end
+
+    # Generate unified diff between original and formatted content
+    def generate_diff(original, formatted, path)
+      require 'tempfile'
+
+      # Write to temp files and use system diff
+      Tempfile.create(['original', '.yml']) do |orig_file|
+        Tempfile.create(['formatted', '.yml']) do |fmt_file|
+          orig_file.write(original)
+          orig_file.flush
+          fmt_file.write(formatted)
+          fmt_file.flush
+
+          # Use git diff if available (better formatting), fall back to diff
+          diff_cmd = if system('which git > /dev/null 2>&1')
+            "git diff --no-index --color=always #{orig_file.path} #{fmt_file.path}"
+          else
+            "diff -u #{orig_file.path} #{fmt_file.path}"
+          end
+
+          diff_output = `#{diff_cmd}`.lines
+
+          # Replace temp file paths with actual path
+          diff_output.map do |line|
+            line.gsub(orig_file.path, path)
+                .gsub(fmt_file.path, "#{path} (formatted)")
+          end.join
+        end
+      end
+    rescue => e
+      "Error generating diff: #{e.message}"
     end
 
     private

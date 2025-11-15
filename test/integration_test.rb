@@ -200,4 +200,32 @@ class IntegrationTest < Minitest::Test
       assert_equal original_data, fixed_data, "Semantics should be preserved"
     end
   end
+
+  def test_diff_generation
+    # Test that diff mode shows formatting changes
+    yaml_unformatted = <<~YAML
+      name: test
+      items:
+        -
+          key: value
+          another: thing
+    YAML
+
+    linter = YamlJanitor::Linter.new
+    result = linter.lint(yaml_unformatted)
+
+    # Should have violations
+    assert result[:violations].any?, "Unformatted YAML should have violations"
+
+    # Generate diff
+    diff = linter.generate_diff(result[:original], result[:formatted], "test.yml")
+
+    # Diff should show the changes
+    assert_includes diff, "--- test.yml", "Diff should include original file path"
+    assert_includes diff, "+++ test.yml (formatted)", "Diff should include formatted file path"
+    assert_includes diff, "- key:", "Diff should show compact array format change"
+
+    # Should not be empty
+    refute_empty diff.strip, "Diff should not be empty"
+  end
 end
