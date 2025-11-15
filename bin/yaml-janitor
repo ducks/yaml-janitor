@@ -11,6 +11,7 @@ def print_usage
 
     Options:
       --fix               Format files in-place (without this, just check)
+      --diff              Show diff of formatting changes
       --config PATH       Path to config file (default: .yaml-janitor.yml)
       --indentation N     Number of spaces for indentation (default: 2)
       --line-width N      Maximum line width (default: 80)
@@ -24,12 +25,16 @@ def print_usage
       # Format files in-place
       yaml-janitor --fix config.yml
       yaml-janitor --fix --indentation 4 containers/
+
+      # Show diff of formatting changes
+      yaml-janitor --diff config.yml
   USAGE
   exit 0
 end
 
 # Parse args
 fix = false
+diff = false
 config_path = nil
 config_overrides = {}
 paths = []
@@ -39,6 +44,8 @@ while i < ARGV.length
   case ARGV[i]
   when "--fix"
     fix = true
+  when "--diff"
+    diff = true
   when "--config"
     i += 1
     config_path = ARGV[i]
@@ -90,10 +97,14 @@ paths.each do |path|
         if fix
           formatted_files << file
           puts "✓ #{file} (formatted)"
+        elsif diff
+          puts "✗ #{file}: needs formatting"
+          puts linter.generate_diff(result[:original], result[:formatted], file)
+          puts ""
         else
           puts "✗ #{file}: needs formatting"
         end
-      elsif !fix
+      elsif !fix && !diff
         puts "✓ #{file}"
       end
     end
@@ -110,10 +121,14 @@ paths.each do |path|
       if fix
         formatted_files << path
         puts "✓ #{path} (formatted)"
+      elsif diff
+        puts "✗ #{path}: needs formatting"
+        puts linter.generate_diff(result[:original], result[:formatted], path)
+        puts ""
       else
         puts "✗ #{path}: needs formatting"
       end
-    elsif !fix
+    elsif !fix && !diff
       puts "✓ #{path}"
     end
   else

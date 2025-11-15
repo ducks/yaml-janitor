@@ -45,6 +45,11 @@ Format with custom indentation:
 yaml-janitor --fix --indentation 4 config.yml
 ```
 
+Show diff of formatting changes:
+```bash
+yaml-janitor --diff config.yml
+```
+
 ### Ruby API
 
 ```ruby
