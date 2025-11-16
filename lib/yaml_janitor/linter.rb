@@ -88,13 +88,20 @@ module YamlJanitor
             "diff -u #{orig_file.path} #{fmt_file.path}"
           end
 
-          diff_output = `#{diff_cmd}`.lines
+          diff_output = `#{diff_cmd}`
 
           # Replace temp file paths with actual path
-          diff_output.map do |line|
-            line.gsub(orig_file.path, path)
-                .gsub(fmt_file.path, "#{path} (formatted)")
-          end.join
+          # Git adds a/ and b/ prefixes (or just a/b for temp files)
+          orig_path_pattern = Regexp.escape(orig_file.path)
+          fmt_path_pattern = Regexp.escape(fmt_file.path)
+
+          # Handle various git diff formats
+          diff_output.gsub(/a\/#{orig_path_pattern}/, path)
+                    .gsub(/b\/#{fmt_path_pattern}/, "#{path} (formatted)")
+                    .gsub(/a#{orig_path_pattern}/, path)
+                    .gsub(/b#{fmt_path_pattern}/, "#{path} (formatted)")
+                    .gsub(/#{orig_path_pattern}/, path)
+                    .gsub(/#{fmt_path_pattern}/, "#{path} (formatted)")
         end
       end
     rescue => e
