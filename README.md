@@ -166,10 +166,6 @@ Integration tests verify:
 
 ## Background
 
-This tool was built to support YAML comment preservation in Discourse ops
-automation. See the original discussion:
-https://dev.discourse.org/t/should-we-lint-our-yaml-files/33593
-
 Built on top of Kevin Newton's psych-pure gem, which provides a pure Ruby YAML
 parser with comment preservation.
 
