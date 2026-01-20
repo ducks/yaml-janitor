@@ -15,7 +15,8 @@ endif
 
 # Bump version to today's date and release
 release: bump-version
-	git add $(VERSION_FILE)
+	bundle install
+	git add $(VERSION_FILE) Gemfile.lock
 	git commit -m "Bump version to $(VERSION)"
 	git tag v$(VERSION)
 	git push origin main v$(VERSION)
