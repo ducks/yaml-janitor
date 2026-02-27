@@ -49,8 +49,8 @@ class IntegrationTest < Minitest::Test
       assert_match(/^  retries:/, fixed_content)
 
       # Verify semantics are preserved
-      original_data = YAML.load(yaml_with_comments)
-      fixed_data = YAML.load(fixed_content)
+      original_data = YAML.safe_load(yaml_with_comments)
+      fixed_data = YAML.safe_load(fixed_content)
       assert_equal original_data, fixed_data, "Semantics should be preserved"
     end
   end
@@ -195,8 +195,8 @@ class IntegrationTest < Minitest::Test
       refute_match(/^  -\s*$/, fixed_content, "Should not have dash on its own line")
 
       # Verify semantics are preserved
-      original_data = YAML.load(yaml_with_arrays)
-      fixed_data = YAML.load(fixed_content)
+      original_data = YAML.safe_load(yaml_with_arrays)
+      fixed_data = YAML.safe_load(fixed_content)
       assert_equal original_data, fixed_data, "Semantics should be preserved"
     end
   end
@@ -227,5 +227,93 @@ class IntegrationTest < Minitest::Test
 
     # Should not be empty
     refute_empty diff.strip, "Diff should not be empty"
+  end
+
+  def test_yaml_with_date_values
+    yaml_with_dates = <<~YAML
+      ---
+      project:
+        name: my-app
+        created: 2025-12-01
+        updated: 2026-01-15
+        deadline: 2026-06-30
+    YAML
+
+    Tempfile.create(["test", ".yml"]) do |file|
+      file.write(yaml_with_dates)
+      file.flush
+
+      config = YamlJanitor::Config.new(overrides: { indentation: 2 })
+      linter = YamlJanitor::Linter.new(config: config)
+      result = linter.lint_file(file.path, fix: true)
+
+      # Should not raise "Tried to load unspecified class: Date"
+      refute result[:error], "Should not error on Date values: #{result[:error]}"
+
+      fixed_content = File.read(file.path)
+      assert_includes fixed_content, "2025-12-01"
+      assert_includes fixed_content, "2026-01-15"
+    end
+  end
+
+  def test_yaml_with_aliases
+    yaml_with_aliases = <<~YAML
+      ---
+      defaults: &defaults
+        adapter: postgres
+        host: localhost
+        port: 5432
+      development:
+        <<: *defaults
+        database: myapp_dev
+      production:
+        <<: *defaults
+        database: myapp_prod
+    YAML
+
+    Tempfile.create(["test", ".yml"]) do |file|
+      file.write(yaml_with_aliases)
+      file.flush
+
+      config = YamlJanitor::Config.new(overrides: { indentation: 2 })
+      linter = YamlJanitor::Linter.new(config: config)
+      result = linter.lint_file(file.path, fix: true)
+
+      # Should not raise "Alias parsing was not enabled"
+      refute result[:error], "Should not error on YAML aliases: #{result[:error]}"
+
+      fixed_content = File.read(file.path)
+      # Aliases are resolved/expanded by the emitter, so verify
+      # the semantic content is present rather than anchor syntax
+      assert_includes fixed_content, "adapter: postgres"
+      assert_includes fixed_content, "database: myapp_dev"
+      assert_includes fixed_content, "database: myapp_prod"
+    end
+  end
+
+  def test_yaml_with_dates_and_aliases_combined
+    yaml_combined = <<~YAML
+      ---
+      shared: &shared
+        created: 2025-06-15
+        timeout: 30
+      service_a:
+        <<: *shared
+        name: alpha
+      service_b:
+        <<: *shared
+        name: beta
+    YAML
+
+    Tempfile.create(["test", ".yml"]) do |file|
+      file.write(yaml_combined)
+      file.flush
+
+      config = YamlJanitor::Config.new(overrides: { indentation: 2 })
+      linter = YamlJanitor::Linter.new(config: config)
+      result = linter.lint_file(file.path, fix: true)
+
+      refute result[:error], "Should handle dates and aliases together: #{result[:error]}"
+    end
   end
 end

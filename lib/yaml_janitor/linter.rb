@@ -23,7 +23,7 @@ module YamlJanitor
       violations = []
 
       # Load with comments
-      loaded = Psych::Pure.load(yaml_content, comments: true)
+      loaded = Psych::Pure.load(yaml_content, comments: true, permitted_classes: [Date, Time, DateTime, Symbol, Regexp], aliases: true)
 
       # Format using our custom emitter
       formatted = Emitter.new(loaded, @config).emit
@@ -111,8 +111,9 @@ module YamlJanitor
     private
 
     def verify_semantics!(original, fixed)
-      original_data = YAML.load(original)
-      fixed_data = YAML.load(fixed)
+      load_opts = { permitted_classes: [Date, Time, DateTime, Symbol, Regexp], aliases: true }
+      original_data = YAML.safe_load(original, **load_opts)
+      fixed_data = YAML.safe_load(fixed, **load_opts)
 
       if original_data != fixed_data
         raise SemanticMismatchError, "Fixed YAML has different semantics than original"
