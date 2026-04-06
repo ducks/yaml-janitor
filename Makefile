@@ -20,6 +20,8 @@ release: bump-version
 	git commit -m "Bump version to $(VERSION)"
 	git tag v$(VERSION)
 	git push origin main v$(VERSION)
+	gem build yaml-janitor.gemspec
+	gem push yaml-janitor-$(VERSION).gem
 
 # Just bump the version without releasing
 bump-version:
