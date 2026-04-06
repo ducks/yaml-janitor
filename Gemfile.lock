@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     yaml-janitor (20260302.1)
-      psych-pure (~> 0.2)
+      psych-pure (~> 0.3)
 
 GEM
   remote: https://rubygems.org/
@@ -12,7 +12,7 @@ GEM
     psych (5.2.6)
       date
       stringio
-    psych-pure (0.2.0)
+    psych-pure (0.3.1)
       psych
       strscan
     rake (13.3.1)
@@ -25,7 +25,7 @@ PLATFORMS
 
 DEPENDENCIES
   minitest (~> 5.0, >= 0)
-  psych-pure (~> 0.2.0)
+  psych-pure (~> 0.3.0)
   rake (~> 13.0, >= 0)
   yaml-janitor!
 

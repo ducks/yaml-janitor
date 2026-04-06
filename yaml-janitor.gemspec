@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
   spec.executables = ["yaml-janitor"]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "psych-pure", "~> 0.2"
+  spec.add_dependency "psych-pure", "~> 0.3"
 
   spec.add_development_dependency "minitest", "~> 5.0"
   spec.add_development_dependency "rake", "~> 13.0"
