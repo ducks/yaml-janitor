@@ -22,11 +22,14 @@ module YamlJanitor
     def lint(yaml_content, fix: false, file: nil)
       violations = []
 
+      # Parse AST for anchor/alias tracking
+      ast = Psych::Pure.parse(yaml_content)
+
       # Load with comments
       loaded = Psych::Pure.load(yaml_content, comments: true, permitted_classes: [Date, Time, DateTime, Symbol, Regexp], aliases: true)
 
-      # Format using our custom emitter
-      formatted = Emitter.new(loaded, @config).emit
+      # Format using our custom emitter (pass AST for anchor/alias preservation)
+      formatted = Emitter.new(loaded, @config, ast: ast).emit
 
       # Check if formatting would change the file
       if yaml_content != formatted
