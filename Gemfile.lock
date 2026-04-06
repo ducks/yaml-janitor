@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    yaml-janitor (20260406)
+    yaml-janitor (20260406.1)
       psych-pure (~> 0.3)
 
 GEM
